@@ -4,9 +4,19 @@
 #include <queue>
 #include <stack>
 #include <algorithm>
-#include "../src/pmc.hpp"
+#include "pmc.hpp"
 
-using namespace std;
+// Streams
+using std::cerr;
+using std::cout;
+// Functions
+using std::endl;
+using std::make_pair;
+// Classes
+using std::string;
+using std::ifstream;
+using std::vector;
+using std::pair;
 
 int main(int argc, char **argv) {
 	if (argc < 4) {
@@ -31,9 +41,9 @@ int main(int argc, char **argv) {
 	is.close();
 
 	InfluenceMaximizer im;
-	vector<int> seeds = im.run(es, k, R);
+	pair<vector<int>, vector<double> > inf_max_res = im.run(es, k, R);
 	for (int i = 0; i < k; i++) {
-		cout << i << "-th seed =\t" << seeds[i] << endl;
+		cout << i << "-th seed and marginal gain =\t" << inf_max_res.first[i] << "\t" << inf_max_res.second[i] << endl;
 	}
 
 	return 0;

@@ -1,47 +1,47 @@
 #include <vector>
 
-using namespace std;
-
 class PrunedEstimater {
 private:
 	int n, n1;
-	vector<int> weight, comp, sigmas;
-	vector<int> pmoc;
-	vector<int> at_p;
+	std::vector<int> weight, comp, sigmas;
+	std::vector<int> pmoc;
+	std::vector<int> at_p;
 
-	vector<int> up;
-	vector<bool> memo, removed;
+	std::vector<int> up;
+	std::vector<bool> memo, removed;
 
-	vector<int> es, rs;
-	vector<int> at_e, at_r;
+	std::vector<int> es, rs;
+	std::vector<int> at_e, at_r;
 
-	vector<bool> visited;
+	std::vector<bool> visited;
 
 	int hub;
-	vector<bool> descendant, ancestor;
+	std::vector<bool> descendant, ancestor;
 	bool flag;
 
 	void first();
 	int sigma(const int v);
 	inline int unique_child(const int v);
 public:
-	void init(int n, vector<pair<int, int> > &es, vector<int> &comp);
+	void init(int n, std::vector<std::pair<int, int> > &es, std::vector<int> &comp);
 	int sigma1(const int v);
 	void add(int v);
-	void update(vector<long long> &sums);
+	void update(std::vector<long long> &sums);
 };
 
 class InfluenceMaximizer {
 private:
 	int n, m; // |V|, |E|
 
-	vector<int> es1, at_e;
-	vector<int> rs1, at_r;
+	std::vector<int> es1, at_e;
+	std::vector<int> rs1, at_r;
 
-	int scc(vector<int> &comp);
+	int scc(std::vector<int> &comp);
 public:
-	vector<int> run(vector<pair<pair<int, int>, double> > &es, const int k,
+	std::pair<std::vector<int>, std::vector<double> > run(std::vector<std::pair<std::pair<int, int>, double> > &es, const int k,
 			const int R);
+	std::vector<double> est(std::vector<std::pair<std::pair<int, int>,double> > &es,
+		const std::vector<int> seeds, const int R);
 };
 
 // Random Number Generator

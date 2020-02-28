@@ -6,7 +6,14 @@
 #include <algorithm>
 #include "pmc.hpp"
 
-using namespace std;
+// Classes
+using std::vector;
+using std::pair;
+using std::queue;
+using std::stack;
+// Functions
+using std::make_pair;
+using std::max;
 
 inline int PrunedEstimater::unique_child(const int v) {
 	int outdeg = 0, child = -1;
@@ -145,7 +152,8 @@ int PrunedEstimater::sigma(const int v0) {
 					}
 				}
 			}
-			for (int i = 0; i < vec.size(); i++) {
+			const size_t vec_size = vec.size();
+			for (unsigned int i = 0; i < vec_size; i++) {
 				visited[vec[i]] = false;
 			}
 			return sigmas[v0] = delta;
@@ -274,12 +282,13 @@ void PrunedEstimater::add(int v0) {
 			}
 		}
 	}
-	for (int i = 0; i < vec.size(); i++) {
+	const size_t vec_size = vec.size();
+	for (unsigned int i = 0; i < vec_size; i++) {
 		visited[vec[i]] = false;
 	}
 }
 
-vector<int> InfluenceMaximizer::run(vector<pair<pair<int, int>, double> > &es,
+pair<vector<int>, vector<double> > InfluenceMaximizer::run(vector<pair<pair<int, int>, double> > &es,
 		const int k, const int R) {
 	n = 0;
 	m = es.size();
@@ -323,7 +332,6 @@ vector<int> InfluenceMaximizer::run(vector<pair<pair<int, int>, double> > &es,
 		}
 
 		vector<int> comp(n);
-
 		int nscc = scc(comp);
 
 		vector<pair<int, int> > es2;
@@ -344,7 +352,7 @@ vector<int> InfluenceMaximizer::run(vector<pair<pair<int, int>, double> > &es,
 	}
 
 	vector<long long> gain(n);
-	vector<int> S;
+	vector<double> marg;
 
 	for (int t = 0; t < k; t++) {
 		for (int j = 0; j < R; j++) {
@@ -356,14 +364,13 @@ vector<int> InfluenceMaximizer::run(vector<pair<pair<int, int>, double> > &es,
 				next = i;
 			}
 		}
-
-		S.push_back(next);
 		for (int j = 0; j < R; j++) {
 			infs[j].add(next);
 		}
+		marg.push_back(gain[next]/(double)R);
 		seeds.push_back(next);
 	}
-	return seeds;
+	return make_pair(seeds, marg);
 }
 
 int InfluenceMaximizer::scc(vector<int> &comp) {
@@ -374,6 +381,7 @@ int InfluenceMaximizer::scc(vector<int> &comp) {
 	for (int i = 0; i < n; i++) {
 		S.push(make_pair(i, 0));
 	}
+
 	for (; !S.empty();) {
 		int v = S.top().first, state = S.top().second;
 		S.pop();
@@ -391,9 +399,11 @@ int InfluenceMaximizer::scc(vector<int> &comp) {
 			lis.push_back(v);
 		}
 	}
+
 	for (int i = 0; i < n; i++) {
 		S.push(make_pair(lis[i], -1));
 	}
+
 	vis.assign(n, false);
 	for (; !S.empty();) {
 		int v = S.top().first, arg = S.top().second;
@@ -409,4 +419,83 @@ int InfluenceMaximizer::scc(vector<int> &comp) {
 		}
 	}
 	return k;
+}
+
+vector<double> InfluenceMaximizer::est(vector<pair<pair<int, int>, double> > &es,
+		const vector<int> seeds, const int R) {
+	const int k = seeds.size();
+	n = 0;
+	m = es.size();
+	for (int i = 0; i < (int) es.size(); i++) {
+		n = max(n, max(es[i].first.first, es[i].first.second) + 1);
+	}
+
+	sort(es.begin(), es.end());
+
+	es1.resize(m);
+	rs1.resize(m);
+	at_e.resize(n + 1);
+	at_r.resize(n + 1);
+
+	vector<PrunedEstimater> infs(R);
+
+	for (int t = 0; t < R; t++) {
+		Xorshift xs = Xorshift(t);
+
+		int mp = 0;
+		at_e.assign(n + 1, 0);
+		at_r.assign(n + 1, 0);
+		vector<pair<int, int> > ps;
+		for (int i = 0; i < m; i++) {
+			if (xs.gen_double() < es[i].second) {
+				es1[mp++] = es[i].first.second;
+				at_e[es[i].first.first + 1]++;
+				ps.push_back(make_pair(es[i].first.second, es[i].first.first));
+			}
+		}
+		at_e[0] = 0;
+		sort(ps.begin(), ps.end());
+		for (int i = 0; i < mp; i++) {
+			rs1[i] = ps[i].second;
+			at_r[ps[i].first + 1]++;
+		}
+		for (int i = 1; i <= n; i++) {
+			at_e[i] += at_e[i - 1];
+			at_r[i] += at_r[i - 1];
+		}
+
+		vector<int> comp(n);
+		int nscc = scc(comp);
+
+		vector<pair<int, int> > es2;
+		for (int u = 0; u < n; u++) {
+			int a = comp[u];
+			for (int i = at_e[u]; i < at_e[u + 1]; i++) {
+				int b = comp[es1[i]];
+				if (a != b) {
+					es2.push_back(make_pair(a, b));
+				}
+			}
+		}
+
+		sort(es2.begin(), es2.end());
+		es2.erase(unique(es2.begin(), es2.end()), es2.end());
+
+		infs[t].init(nscc, es2, comp);
+	}
+
+	vector<long long> gain(n);
+	vector<double> marg;
+
+	for (int t = 0; t < k; t++) {
+		for (int j = 0; j < R; j++) {
+			infs[j].update(gain);
+		}
+		int next = seeds[t];
+		for (int j = 0; j < R; j++) {
+			infs[j].add(next);
+		}
+		marg.push_back(gain[next]/(double)R);
+	}
+	return marg;
 }

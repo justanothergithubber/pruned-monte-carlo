@@ -1,12 +1,16 @@
 CXX = g++
 CXXFLAGS = -g -Wall -Wextra -O3
 
-all: benchmark
+all: pmc_greed pmc_est
 
-benchmark: samples/benchmark.cpp src/pmc.cpp
+pmc_greed: src/greed.cpp src/pmc.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+pmc_est: src/inf_est.cpp src/pmc.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 .PHONY: clean
 
 clean:
-	rm -f benchmark
+	rm -f pmc_greed
+	rm -f pmc_est
