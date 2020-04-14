@@ -1,19 +1,10 @@
-#include <iostream>
-#include <fstream>
 #include <vector>
 #include <queue>
 #include <stack>
+#include <tuple>
+#include <chrono>
 #include <algorithm>
 #include "pmc.hpp"
-
-// Classes
-using std::vector;
-using std::pair;
-using std::queue;
-using std::stack;
-// Functions
-using std::make_pair;
-using std::max;
 
 inline int PrunedEstimater::unique_child(const int v) {
 	int outdeg = 0, child = -1;
@@ -33,18 +24,18 @@ inline int PrunedEstimater::unique_child(const int v) {
 	}
 }
 
-void PrunedEstimater::init(const int _n, vector<pair<int, int> > &_es,
-		vector<int> &_comp) {
+void PrunedEstimater::init(const int _n,
+	std::vector<std::pair<int, int> > &_es, std::vector<int> &_comp) {
 	flag = true;
 	n = _n;
 	n1 = _comp.size();
 
 	visited.resize(n, false);
 
-	int m = _es.size();
-	vector<int> outdeg(n), indeg(n);
+	unsigned long long m = _es.size();
+	std::vector<int> outdeg(n), indeg(n);
 
-	for (int i = 0; i < m; i++) {
+	for (unsigned int i = 0; i < m; i++) {
 		int a = _es[i].first, b = _es[i].second;
 		outdeg[a]++;
 		indeg[b]++;
@@ -61,7 +52,7 @@ void PrunedEstimater::init(const int _n, vector<pair<int, int> > &_es,
 		at_r[i] = at_r[i - 1] + indeg[i - 1];
 	}
 
-	for (int i = 0; i < m; i++) {
+	for (unsigned int i = 0; i < m; i++) {
 		int a = _es[i].first, b = _es[i].second;
 		es[at_e[a]++] = b;
 		rs[at_r[b]++] = a;
@@ -75,13 +66,13 @@ void PrunedEstimater::init(const int _n, vector<pair<int, int> > &_es,
 
 	sigmas.resize(n);
 	comp = _comp;
-	vector<pair<int, int> > ps;
-	for (int i = 0; i < n1; i++) {
-		ps.push_back(make_pair(comp[i], i));
+	std::vector<std::pair<int, int> > ps;
+	for (unsigned int i = 0; i < n1; i++) {
+		ps.push_back(std::make_pair(comp[i], i));
 	}
 	sort(ps.begin(), ps.end());
 	at_p.resize(n + 1);
-	for (int i = 0; i < n1; i++) {
+	for (unsigned int i = 0; i < n1; i++) {
 		pmoc.push_back(ps[i].second);
 		at_p[ps[i].first + 1]++;
 	}
@@ -93,7 +84,7 @@ void PrunedEstimater::init(const int _n, vector<pair<int, int> > &_es,
 	removed.resize(n);
 
 	weight.resize(n1, 0);
-	for (int i = 0; i < n1; i++) {
+	for (unsigned int i = 0; i < n1; i++) {
 		weight[comp[i]]++;
 	}
 
@@ -119,10 +110,10 @@ int PrunedEstimater::sigma(const int v0) {
 			return sigmas[v0] = sigma(child) + weight[v0];
 		} else {
 			int delta = 0;
-			vector<int> vec;
+			std::vector<int> vec;
 			visited[v0] = true;
 			vec.push_back(v0);
-			queue<int> Q;
+			std::queue<int> Q;
 			Q.push(v0);
 			bool prune = ancestor[v0];
 
@@ -171,7 +162,7 @@ void PrunedEstimater::first() {
 	}
 
 	descendant.resize(n);
-	queue<int> Q;
+	std::queue<int> Q;
 	Q.push(hub);
 	for (; !Q.empty();) {
 		// forall v, !remove[v]
@@ -209,19 +200,20 @@ void PrunedEstimater::first() {
 	ancestor.assign(n, false);
 	descendant.assign(n, false);
 
-	for (int i = 0; i < n1; i++) {
+	for (unsigned int i = 0; i < n1; i++) {
 		up.push_back(i);
 	}
 }
 
-void PrunedEstimater::update(vector<long long> &sums) {
-	for (int i = 0; i < (int) up.size(); i++) {
+void PrunedEstimater::update(std::vector<long long> &sums) {
+	unsigned long long us = up.size();
+	for (unsigned int i = 0; i < us; i++) {
 		int v = up[i];
 		if (!flag) {
 			sums[v] -= sigmas[comp[v]];
 		}
 	}
-	for (int i = 0; i < (int) up.size(); i++) {
+	for (unsigned int i = 0; i < us; i++) {
 		int v = up[i];
 		sums[v] += sigma1(v);
 	}
@@ -230,10 +222,10 @@ void PrunedEstimater::update(vector<long long> &sums) {
 
 void PrunedEstimater::add(int v0) {
 	v0 = comp[v0];
-	queue<int> Q;
+	std::queue<int> Q;
 	Q.push(v0);
 	removed[v0] = true;
-	vector<int> rm;
+	std::vector<int> rm;
 	for (; !Q.empty();) {
 		const int v = Q.front();
 		Q.pop();
@@ -249,8 +241,8 @@ void PrunedEstimater::add(int v0) {
 
 	up.clear();
 
-	vector<int> vec;
-	for (int i = 0; i < (int) rm.size(); i++) {
+	std::vector<int> vec;
+	for (int i = 0; i < static_cast<int>(rm.size()); i++) {
 		const int v = rm[i];
 		memo[v] = false; // for update()
 		for (int j = at_p[v]; j < at_p[v + 1]; j++) {
@@ -288,14 +280,64 @@ void PrunedEstimater::add(int v0) {
 	}
 }
 
-pair<vector<int>, vector<double> > InfluenceMaximizer::run(vector<pair<pair<int, int>, double> > &es,
-		const int k, const int R) {
-	n = 0;
-	m = es.size();
-	for (int i = 0; i < (int) es.size(); i++) {
-		n = max(n, max(es[i].first.first, es[i].first.second) + 1);
+int InfluenceMaximizer::scc(std::vector<int> &comp) {
+	std::vector<bool> vis(n);
+	std::stack<std::pair<int, int> > S;
+	std::vector<int> lis;
+	int k = 0;
+	for (int i = 0; i < n; i++) {
+		S.push(std::make_pair(i, 0));
 	}
 
+	for (; !S.empty();) {
+		int v = S.top().first, state = S.top().second;
+		S.pop();
+		if (state == 0) {
+			if (vis[v]) {
+				continue;
+			}
+			vis[v] = true;
+			S.push(std::make_pair(v, 1));
+			for (int i = at_e[v]; i < at_e[v + 1]; i++) {
+				int u = es1[i];
+				S.push(std::make_pair(u, 0));
+			}
+		} else {
+			lis.push_back(v);
+		}
+	}
+
+	for (int i = 0; i < n; i++) {
+		S.push(std::make_pair(lis[i], -1));
+	}
+
+	vis.assign(n, false);
+	for (; !S.empty();) {
+		int v = S.top().first, arg = S.top().second;
+		S.pop();
+		if (vis[v]) {
+			continue;
+		}
+		vis[v] = true;
+		comp[v] = arg == -1 ? k++ : arg;
+		for (int i = at_r[v]; i < at_r[v + 1]; i++) {
+			int u = rs1[i];
+			S.push(std::make_pair(u, comp[v]));
+		}
+	}
+	return k;
+}
+
+std::tuple<std::vector<int>, std::vector<double>, std::vector<double> >
+	InfluenceMaximizer::run(
+		std::vector<std::pair<std::pair<int, int>, double> > &es,
+			const int k, const int R, const int seed_delta,
+				const std::chrono::high_resolution_clock::time_point start_time) {
+	n = 0;
+	m = es.size();
+	for (unsigned int i = 0; i < m; i++) {
+		n = std::max(n, std::max(es[i].first.first, es[i].first.second) + 1);
+	}
 	sort(es.begin(), es.end());
 
 	es1.resize(m);
@@ -303,21 +345,21 @@ pair<vector<int>, vector<double> > InfluenceMaximizer::run(vector<pair<pair<int,
 	at_e.resize(n + 1);
 	at_r.resize(n + 1);
 
-	vector<PrunedEstimater> infs(R);
-	vector<int> seeds;
+	std::vector<PrunedEstimater> infs(R);
 
 	for (int t = 0; t < R; t++) {
-		Xorshift xs = Xorshift(t);
+		Xorshift xs = Xorshift(t + seed_delta);
 
 		int mp = 0;
 		at_e.assign(n + 1, 0);
 		at_r.assign(n + 1, 0);
-		vector<pair<int, int> > ps;
-		for (int i = 0; i < m; i++) {
+		std::vector<std::pair<int, int> > ps;
+		for (unsigned int i = 0; i < m; i++) {
 			if (xs.gen_double() < es[i].second) {
 				es1[mp++] = es[i].first.second;
 				at_e[es[i].first.first + 1]++;
-				ps.push_back(make_pair(es[i].first.second, es[i].first.first));
+				ps.push_back(std::make_pair(es[i].first.second,
+											es[i].first.first));
 			}
 		}
 		at_e[0] = 0;
@@ -331,16 +373,16 @@ pair<vector<int>, vector<double> > InfluenceMaximizer::run(vector<pair<pair<int,
 			at_r[i] += at_r[i - 1];
 		}
 
-		vector<int> comp(n);
+		std::vector<int> comp(n);
 		int nscc = scc(comp);
 
-		vector<pair<int, int> > es2;
+		std::vector<std::pair<int, int> > es2;
 		for (int u = 0; u < n; u++) {
 			int a = comp[u];
 			for (int i = at_e[u]; i < at_e[u + 1]; i++) {
 				int b = comp[es1[i]];
 				if (a != b) {
-					es2.push_back(make_pair(a, b));
+					es2.push_back(std::make_pair(a, b));
 				}
 			}
 		}
@@ -351,8 +393,10 @@ pair<vector<int>, vector<double> > InfluenceMaximizer::run(vector<pair<pair<int,
 		infs[t].init(nscc, es2, comp);
 	}
 
-	vector<long long> gain(n);
-	vector<double> marg;
+	std::vector<int> seeds;
+	std::vector<double> compute_times;
+	std::vector<long long> gain(n);
+	std::vector<double> marg;
 
 	for (int t = 0; t < k; t++) {
 		for (int j = 0; j < R; j++) {
@@ -367,67 +411,25 @@ pair<vector<int>, vector<double> > InfluenceMaximizer::run(vector<pair<pair<int,
 		for (int j = 0; j < R; j++) {
 			infs[j].add(next);
 		}
-		marg.push_back(gain[next]/(double)R);
+		marg.push_back(static_cast<double>(gain[next]) / R);
 		seeds.push_back(next);
+		double compute_time_len
+			= std::chrono::duration_cast<std::chrono::duration<double> >
+				(std::chrono::high_resolution_clock::now()
+					- start_time).count();
+		compute_times.push_back(compute_time_len);
 	}
-	return make_pair(seeds, marg);
+	return std::make_tuple(seeds, marg, compute_times);
 }
 
-int InfluenceMaximizer::scc(vector<int> &comp) {
-	vector<bool> vis(n);
-	stack<pair<int, int> > S;
-	vector<int> lis;
-	int k = 0;
-	for (int i = 0; i < n; i++) {
-		S.push(make_pair(i, 0));
-	}
-
-	for (; !S.empty();) {
-		int v = S.top().first, state = S.top().second;
-		S.pop();
-		if (state == 0) {
-			if (vis[v]) {
-				continue;
-			}
-			vis[v] = true;
-			S.push(make_pair(v, 1));
-			for (int i = at_e[v]; i < at_e[v + 1]; i++) {
-				int u = es1[i];
-				S.push(make_pair(u, 0));
-			}
-		} else {
-			lis.push_back(v);
-		}
-	}
-
-	for (int i = 0; i < n; i++) {
-		S.push(make_pair(lis[i], -1));
-	}
-
-	vis.assign(n, false);
-	for (; !S.empty();) {
-		int v = S.top().first, arg = S.top().second;
-		S.pop();
-		if (vis[v]) {
-			continue;
-		}
-		vis[v] = true;
-		comp[v] = arg == -1 ? k++ : arg;
-		for (int i = at_r[v]; i < at_r[v + 1]; i++) {
-			int u = rs1[i];
-			S.push(make_pair(u, comp[v]));
-		}
-	}
-	return k;
-}
-
-vector<double> InfluenceMaximizer::est(vector<pair<pair<int, int>, double> > &es,
-		const vector<int> seeds, const int R) {
-	const int k = seeds.size();
+std::vector<double> InfluenceMaximizer::est(
+	std::vector<std::pair<std::pair<int, int>, double> > &es,
+		const std::vector<unsigned int> seeds, const int R, const int seed_delta) {
+	const unsigned long long k = seeds.size();
 	n = 0;
 	m = es.size();
-	for (int i = 0; i < (int) es.size(); i++) {
-		n = max(n, max(es[i].first.first, es[i].first.second) + 1);
+	for (unsigned int i = 0; i < m; i++) {
+		n = std::max(n, std::max(es[i].first.first, es[i].first.second) + 1);
 	}
 
 	sort(es.begin(), es.end());
@@ -437,20 +439,21 @@ vector<double> InfluenceMaximizer::est(vector<pair<pair<int, int>, double> > &es
 	at_e.resize(n + 1);
 	at_r.resize(n + 1);
 
-	vector<PrunedEstimater> infs(R);
+	std::vector<PrunedEstimater> infs(R);
 
 	for (int t = 0; t < R; t++) {
-		Xorshift xs = Xorshift(t);
+		Xorshift xs = Xorshift(t + seed_delta);
 
 		int mp = 0;
 		at_e.assign(n + 1, 0);
 		at_r.assign(n + 1, 0);
-		vector<pair<int, int> > ps;
-		for (int i = 0; i < m; i++) {
+		std::vector<std::pair<int, int> > ps;
+		for (unsigned int i = 0; i < m; i++) {
 			if (xs.gen_double() < es[i].second) {
 				es1[mp++] = es[i].first.second;
 				at_e[es[i].first.first + 1]++;
-				ps.push_back(make_pair(es[i].first.second, es[i].first.first));
+				ps.push_back(std::make_pair(es[i].first.second,
+											es[i].first.first));
 			}
 		}
 		at_e[0] = 0;
@@ -464,16 +467,16 @@ vector<double> InfluenceMaximizer::est(vector<pair<pair<int, int>, double> > &es
 			at_r[i] += at_r[i - 1];
 		}
 
-		vector<int> comp(n);
+		std::vector<int> comp(n);
 		int nscc = scc(comp);
 
-		vector<pair<int, int> > es2;
+		std::vector<std::pair<int, int> > es2;
 		for (int u = 0; u < n; u++) {
 			int a = comp[u];
 			for (int i = at_e[u]; i < at_e[u + 1]; i++) {
 				int b = comp[es1[i]];
 				if (a != b) {
-					es2.push_back(make_pair(a, b));
+					es2.push_back(std::make_pair(a, b));
 				}
 			}
 		}
@@ -484,18 +487,18 @@ vector<double> InfluenceMaximizer::est(vector<pair<pair<int, int>, double> > &es
 		infs[t].init(nscc, es2, comp);
 	}
 
-	vector<long long> gain(n);
-	vector<double> marg;
+	std::vector<long long> gain(n);
+	std::vector<double> marg;
 
-	for (int t = 0; t < k; t++) {
+	for (unsigned int t = 0; t < k; t++) {
 		for (int j = 0; j < R; j++) {
 			infs[j].update(gain);
 		}
-		int next = seeds[t];
+		unsigned int next = seeds[t];
 		for (int j = 0; j < R; j++) {
 			infs[j].add(next);
 		}
-		marg.push_back(gain[next]/(double)R);
+		marg.push_back(static_cast<double>(gain[next]) / R);
 	}
 	return marg;
 }

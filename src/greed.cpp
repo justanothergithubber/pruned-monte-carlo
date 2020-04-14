@@ -1,49 +1,44 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <queue>
-#include <stack>
-#include <algorithm>
+#include <tuple>
+#include <chrono>
 #include "pmc.hpp"
 
-// Streams
-using std::cerr;
-using std::cout;
-// Functions
-using std::endl;
-using std::make_pair;
-// Classes
-using std::string;
-using std::ifstream;
-using std::vector;
-using std::pair;
-
 int main(int argc, char **argv) {
-	if (argc < 4) {
-		cerr << "./pmc graph k R" << endl;
+	if (argc < 5) {
+		std::cerr << "./pmc_greed tsv_file target_seed_size "
+					 "number_of_random_graphs seed_delta" << std::endl;
 		exit(1);
 	}
 
-	string file = argv[1];
+	const std::chrono::high_resolution_clock::time_point 
+		start_time = std::chrono::high_resolution_clock::now();
+
+	std::string file = argv[1];
 	int k = atoi(argv[2]);
 	int R = atoi(argv[3]);
+	const int seed_delta = atoi(argv[4]);
 
-	ifstream is(file.c_str());
-	vector<pair<pair<int, int>, double> > es;
+	std::ifstream is(file.c_str());
+	std::vector<std::pair<std::pair<int, int>, double> > es;
 	int u, v;
 	double p;
 	for (; is >> u >> v >> p;) {
 		if (u == v) {
 			continue;
 		}
-		es.push_back(make_pair(make_pair(u, v), p));
+		es.push_back(std::make_pair(std::make_pair(u, v), p));
 	}
 	is.close();
 
 	InfluenceMaximizer im;
-	pair<vector<int>, vector<double> > inf_max_res = im.run(es, k, R);
+	std::tuple<std::vector<int>, std::vector<double>, std::vector<double> >
+		inf_max_res = im.run(es, k, R, seed_delta, start_time);
 	for (int i = 0; i < k; i++) {
-		cout << i << "-th seed and marginal gain =\t" << inf_max_res.first[i] << "\t" << inf_max_res.second[i] << endl;
+		std::cout << std::get<0>(inf_max_res)[i] << "\t"
+			<< std::get<1>(inf_max_res)[i] << "\t"
+			<< std::get<2>(inf_max_res)[i] << std::endl;
 	}
 
 	return 0;

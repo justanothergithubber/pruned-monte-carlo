@@ -1,12 +1,12 @@
 CXX = g++
-CXXFLAGS = -g -Wall -Wextra -O3
+CXXFLAGS = -Wall -Wextra -Wconversion -Werror -pedantic -std=c++17 -O3 
 
 all: pmc_greed pmc_est
 
 pmc_greed: src/greed.cpp src/pmc.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-pmc_est: src/inf_est.cpp src/pmc.cpp
+pmc_est: src/est.cpp src/pmc.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 .PHONY: clean

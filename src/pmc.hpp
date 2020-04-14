@@ -1,8 +1,11 @@
 #include <vector>
+#include <tuple>
+#include <chrono>
 
 class PrunedEstimater {
 private:
-	int n, n1;
+	int n;
+	unsigned long long n1;  // vector.size() type
 	std::vector<int> weight, comp, sigmas;
 	std::vector<int> pmoc;
 	std::vector<int> at_p;
@@ -23,7 +26,8 @@ private:
 	int sigma(const int v);
 	inline int unique_child(const int v);
 public:
-	void init(int n, std::vector<std::pair<int, int> > &es, std::vector<int> &comp);
+	void init(int n, std::vector<std::pair<int, int> > &es,
+		std::vector<int> &comp);
 	int sigma1(const int v);
 	void add(int v);
 	void update(std::vector<long long> &sums);
@@ -31,21 +35,27 @@ public:
 
 class InfluenceMaximizer {
 private:
-	int n, m; // |V|, |E|
+	int n;  // |V|
+	unsigned long long m;  // |E|
 
 	std::vector<int> es1, at_e;
 	std::vector<int> rs1, at_r;
 
 	int scc(std::vector<int> &comp);
 public:
-	std::pair<std::vector<int>, std::vector<double> > run(std::vector<std::pair<std::pair<int, int>, double> > &es, const int k,
-			const int R);
-	std::vector<double> est(std::vector<std::pair<std::pair<int, int>,double> > &es,
-		const std::vector<int> seeds, const int R);
+	std::tuple<std::vector<int>, std::vector<double>, std::vector<double> >
+		run(std::vector<std::pair<std::pair<int, int>, double> >
+			&es, const int k, const int R, const int seed_delta,
+				const std::chrono::high_resolution_clock::time_point start_time);
+	std::vector<double>
+		est(std::vector<std::pair<std::pair<int, int>,double> > &es,
+			const std::vector<unsigned int> seeds, const int R, const int seed_delta);
 };
 
 // Random Number Generator
 class Xorshift {
+private:
+	unsigned int x, y, z, w;
 public:
 	Xorshift(int seed) {
 		x = _(seed, 0);
@@ -67,15 +77,12 @@ public:
 	}
 
 	inline int gen_int(int n) {
-		return (int) (n * gen_double());
+		return static_cast<int>(n * gen_double());
 	}
 
 	inline double gen_double() {
-		unsigned int a = ((unsigned int) gen_int()) >> 5, b =
-				((unsigned int) gen_int()) >> 6;
+		unsigned int a = (static_cast<unsigned int>(gen_int())) >> 5, b =
+			(static_cast<unsigned int>(gen_int())) >> 6;
 		return (a * 67108864.0 + b) * (1.0 / (1LL << 53));
 	}
-
-private:
-	unsigned int x, y, z, w;
 };
